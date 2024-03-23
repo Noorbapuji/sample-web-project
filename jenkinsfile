@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+    environment {
+        PATH = "/opt/maven/bin:${PATH}"
+    }
+stages {
+        stage('cloning the code from github') {
+            steps {
+            git credentialsId: 'github_userid_password', url: 'https://github.com/Noorbapuji/sample-web-project.git'    
+            }
+        }
+            stage('Build the code using maven') {
+            steps {
+            sh 'mvn clean install'    
+            
+            }
+        }
+        
+        stage('uploading artifact to nexus server') {
+            steps {
+              nexusArtifactUploader artifacts: [[artifactId: 'web-project', classifier: '', file: '/var/lib/jenkins/workspace/git-maven-nexus-tomcat-pipeline/target/web-project.war', type: 'war']], credentialsId: 'nexus_username_password', groupId: 'com.noorbapuji', nexusUrl: '44.204.55.101:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-snapshots', version: '1.0-SNAPSHOT'
+            }
+        }
+        stage('Deploying the war file in tomcat server') {
+            steps {
+             deploy adapters: [tomcat9(credentialsId: 'tomcat_credentials', path: '', url: 'http://18.206.100.222:8080/')], contextPath: null, war: '**/*.war' 
+            }
+        }
+        
+    }
+}    
+    
