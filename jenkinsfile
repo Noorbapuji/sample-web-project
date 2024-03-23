@@ -7,7 +7,6 @@ options {
   timestamps()
 cleanWs()
 }
-}
 stages {
         stage('cloning the code from github') {
             steps {
