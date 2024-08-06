@@ -3,39 +3,36 @@ pipeline {
     environment {
         PATH = "/opt/maven/bin:${PATH}"
     }
-options {
+        options {
   timestamps()
-}
-stages {
-        stage('cloning the code from github') {
+    }
+
+    stages {
+        stage('Cloning the code from github'){
             steps {
-            git credentialsId: 'github_userid_password', url: 'https://github.com/Noorbapuji/sample-web-project.git'    
-            }
-        }
-            stage('Build the code using maven') {
-            steps {
-            sh 'mvn clean install'    
-            
+                git credentialsId: 'github-cred', url: 'https://github.com/Noorbapuji/sample-web-project.git'
             }
         }
         
-        stage('uploading artifact to nexus server') {
+        stage('Building code using maven'){
             steps {
-              nexusArtifactUploader artifacts: [[artifactId: 'web-project', classifier: '', file: '/var/lib/jenkins/workspace/git-maven-nexus-tomcat-pipeline/target/web-project.war', type: 'war']], credentialsId: 'nexus_username_password', groupId: 'com.noorbapuji', nexusUrl: '44.204.55.101:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-snapshots', version: '1.0-SNAPSHOT'
+                sh 'mvn clean install'
             }
         }
-        stage('Deploying the war file in tomcat server') {
+        stage('uploaing the artifactory to nexus-repository'){
             steps {
-             deploy adapters: [tomcat9(credentialsId: 'tomcat_credentials', path: '', url: 'http://3.94.160.114:8080/')], contextPath: null, war: '**/*.war' 
+                nexusArtifactUploader artifacts: [[artifactId: 'web-project', classifier: '', file: '/var/lib/jenkins/workspace/new-pipeline/target/web-project.war', type: 'war']], credentialsId: 'nexus_cred', groupId: 'com.noorbapuji', nexusUrl: '3.91.79.236:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-snapshots', version: '1.0-SNAPSHOT'    
             }
         }
-    
-    
+        stage('deploying artifact to tomcat-server'){
+            steps {
+                deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://3.94.196.8:8080/')], contextPath: null, war: '**/*.war'
+            }
+        }
+    }    
+post {
+     always {
+            slackSend channel: 'devlopment', color: 'green', message: 'pipeline successfully completed, thankyou ', teamDomain: 'devopsplatformgroup', tokenCredentialId: 'Slack_token'
+        }
+    }
 }
- post {
-  always {
-    slackSend channel: 'devlopment', message: 'Build completed ', teamDomain: 'devopsplatformgroup', tokenCredentialId: 'Slack_token'
-  }
-}   
-}    
-    
