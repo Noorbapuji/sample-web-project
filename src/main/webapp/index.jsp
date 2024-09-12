@@ -1,5 +1,5 @@
 <html>
 <body>
-<h2>Bharath linux admin</h2>
+<h2>Welcome to gantasoft!</h2>
 </body>
 </html>
