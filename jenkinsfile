@@ -44,11 +44,9 @@ pipeline {
     }
     post {
   success {
-    // One or more steps need to be included within each condition's block.
      slackSend channel: 'gantasoft-devops', message: 'Project successfully deployed in tomcat using jenkins pipeline, Thank you........'
   }
    failure {
-    // One or more steps need to be included within each condition's block.
     slackSend channel: 'gantasoft-devops', message: 'buid failed please tryagen '
   }
 }
