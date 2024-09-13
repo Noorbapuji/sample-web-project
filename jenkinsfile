@@ -1,38 +1,55 @@
 pipeline {
     agent any
-    environment {
-        PATH = "/opt/maven/bin:${PATH}"
+    tools {
+        maven 'maven'
     }
-        options {
+    options {
   timestamps()
-    }
-
-    stages {
-        stage('Cloning the code from github'){
+}
+     stages {
+        stage('cloning code from github') {
             steps {
                 git credentialsId: 'github-cred', url: 'https://github.com/Noorbapuji/sample-web-project.git'
             }
         }
-        
-        stage('Building code using maven'){
+        stage('building the code using maven') {
             steps {
-                sh 'mvn clean install'
+              sh 'mvn clean install'   
             }
         }
-        stage('uploaing the artifactory to nexus-repository'){
+        stage('uploading artifact to nexus repo') {
             steps {
-                nexusArtifactUploader artifacts: [[artifactId: 'web-project', classifier: '', file: '/var/lib/jenkins/workspace/new-pipeline/target/web-project.war', type: 'war']], credentialsId: 'nexus_cred', groupId: 'com.noorbapuji', nexusUrl: '3.91.79.236:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-snapshots', version: '1.0-SNAPSHOT'    
+                nexusArtifactUploader artifacts: [[artifactId: 'web-project', classifier: '', file: '/var/lib/jenkins/workspace/git-maven-nexus-sonarqube-tomcat-slack/target/web-project.war', type: 'war']], credentialsId: 'nexus-cred', groupId: 'com.noorbapuji', nexusUrl: '54.152.93.164:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-snapshots', version: '1.0-SNAPSHOT'
             }
         }
-        stage('deploying artifact to tomcat-server'){
+        stage('Git Checkout') {
             steps {
-                deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://3.94.196.8:8080/')], contextPath: null, war: '**/*.war'
+                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Noorbapuji/sample-web-project.git']])
+                echo 'Git Checkout Completed'
             }
         }
-    }    
-post {
-     always {
-            slackSend channel: 'devlopment', color: 'green', message: 'pipeline successfully completed, thankyou ', teamDomain: 'devopsplatformgroup', tokenCredentialId: 'Slack_token'
+     stage('Code scanning by SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh '''mvn clean verify sonar:sonar -Dsonar.projectKey=web-project -Dsonar.projectName='sample-web-project' -Dsonar.host.url=http://54.89.205.244:9000''' //port 9000 is default for sonar
+                    echo 'SonarQube Analysis Completed'
+                }
+            }
+        }
+         stage('deploying to tomcat web-server') {
+            steps {
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://35.174.105.117:8080/')], contextPath: null, war: '**/*.war'
+            }
         }
     }
+    post {
+  success {
+    // One or more steps need to be included within each condition's block.
+     slackSend channel: 'gantasoft-devops', message: 'Project successfully deployed in tomcat using jenkins pipeline, Thank you........'
+  }
+   failure {
+    // One or more steps need to be included within each condition's block.
+    slackSend channel: 'gantasoft-devops', message: 'buid failed please tryagen '
+  }
+}
 }
